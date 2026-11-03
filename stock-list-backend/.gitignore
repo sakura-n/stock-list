@@ -1,0 +1,9 @@
+target/
+data/
+uploads/
+*.mv.db
+*.trace.db
+.idea/
+*.iml
+dist-desktop/
+src/main/resources/static/

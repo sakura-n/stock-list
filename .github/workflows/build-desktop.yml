@@ -1,0 +1,55 @@
+name: Build Desktop App
+
+on:
+  workflow_dispatch:        # 可在 Actions 页面手动点“Run workflow”触发
+  push:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: bash build-desktop.sh
+            app_dir: stock-list-backend/dist-desktop/囤货清单.app
+            artifact: StockList-mac-app
+          - os: windows-latest
+            script: pwsh ./build-desktop.ps1
+            app_dir: stock-list-backend/dist-desktop/StockList
+            artifact: StockList-win-app
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.artifact }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Build desktop app (${{ matrix.os }})
+        run: ${{ matrix.script }}
+
+      - name: Zip artifact (mac)
+        if: runner.os == 'macOS'
+        run: cd stock-list-backend/dist-desktop && zip -r -q "${{ matrix.artifact }}.zip" "囤货清单.app"
+
+      - name: Zip artifact (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "stock-list-backend\dist-desktop\StockList" -DestinationPath "stock-list-backend\dist-desktop\${{ matrix.artifact }}.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: stock-list-backend/dist-desktop/${{ matrix.artifact }}.zip
+          if-no-files-found: error
