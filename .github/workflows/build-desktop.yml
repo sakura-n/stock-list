@@ -1,11 +1,15 @@
 name: Build Desktop App
 
 on:
-  workflow_dispatch:        # 可在 Actions 页面手动点“Run workflow”触发
+  workflow_dispatch:
   push:
     branches: [ main, master ]
+    tags: [ "v*" ]          # 推送 v1.0.0 之类的标签即触发发布 Release
   release:
     types: [ published ]
+
+permissions:
+  contents: write           # release 任务需要创建发布
 
 jobs:
   build:
@@ -15,11 +19,9 @@ jobs:
         include:
           - os: macos-latest
             script: bash build-desktop.sh
-            app_dir: stock-list-backend/dist-desktop/囤货清单.app
             artifact: StockList-mac-app
           - os: windows-latest
             script: pwsh ./build-desktop.ps1
-            app_dir: stock-list-backend/dist-desktop/StockList
             artifact: StockList-win-app
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.artifact }}
@@ -53,3 +55,26 @@ jobs:
           name: ${{ matrix.artifact }}
           path: stock-list-backend/dist-desktop/${{ matrix.artifact }}.zip
           if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')   # 仅标签推送才发布
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: List assets
+        run: ls -R release-assets
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/StockList-mac-app/StockList-mac-app.zip
+            release-assets/StockList-win-app/StockList-win-app.zip
+          generate_release_notes: true
+          fail_on_missing_files: true
