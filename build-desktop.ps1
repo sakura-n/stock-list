@@ -8,6 +8,22 @@ $BE       = Join-Path $ROOT "stock-list-backend"
 $JAR_NAME = "stock-list-backend-0.0.1-SNAPSHOT.jar"
 $APP_NAME = "StockList"
 
+# 锁定 JDK 21：Lombok 1.18.34 不兼容 JDK 25，否则 @Slf4j/@Data 失效报“找不到符号”
+function Test-Jdk21($home21) {
+  if (-not $home21) { return $false }
+  $javac = Join-Path $home21 "bin\javac.exe"
+  if (-not (Test-Path $javac)) { return $false }
+  ((& $javac -version 2>&1) -match '\b21\b')
+}
+if (-not (Test-Jdk21 $env:JAVA_HOME)) {
+  $cand = Get-ChildItem "C:\Program Files\Eclipse Adoptium\jdk-21*","C:\Program Files\Java\jdk-21*" -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($cand) { $env:JAVA_HOME = $cand.FullName } else {
+    Write-Error "未找到 JDK 21。请安装 Adoptium/Temurin JDK 21 或手动设置 `$env:JAVA_HOME 指向 JDK 21"
+    exit 1
+  }
+}
+$env:PATH = (Join-Path $env:JAVA_HOME "bin") + ";" + $env:PATH
+Write-Host "==> 使用 JDK: $env:JAVA_HOME" -ForegroundColor Cyan
 Write-Host "==> 1/5 构建前端 H5" -ForegroundColor Cyan
 Set-Location $FE
 if (-not (Test-Path "$FE\node_modules")) { npm install }

@@ -9,6 +9,32 @@ BE="$ROOT/stock-list-backend"
 JAR_NAME="stock-list-backend-0.0.1-SNAPSHOT.jar"
 APP_NAME="囤货清单"
 
+# --- 锁定 JDK 21：Spring Boot 3.3.5 自带的 Lombok 1.18.34 不兼容 JDK 25，
+#     否则 @Slf4j/@Data 注解处理器失效，报“找不到符号 log/getName()” ---
+pick_jdk21() {
+  if [ -n "${JAVA_HOME:-}" ] && "$JAVA_HOME/bin/javac" -version 2>&1 | grep -q ' 21'; then
+    echo "$JAVA_HOME"; return
+  fi
+  if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    H="$(/usr/libexec/java_home -v 21 2>/dev/null)" && [ -x "$H/bin/javac" ] && { echo "$H"; return; }
+  fi
+  for d in /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+           /usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+           /usr/lib/jvm/java-21-openjdk; do
+    [ -x "$d/bin/javac" ] && { echo "$d"; return; }
+  done
+  echo ""
+}
+J21="$(pick_jdk21)"
+if [ -z "$J21" ]; then
+  echo "❌ 未找到 JDK 21。请安装后重试（macOS: brew install openjdk@21），或手动 export JAVA_HOME 指向 JDK 21"
+  exit 1
+fi
+export JAVA_HOME="$J21"
+export PATH="$JAVA_HOME/bin:$PATH"
+echo "==> 使用 JDK: $JAVA_HOME"
+"$JAVA_HOME/bin/java" -version
+
 echo "==> 1/5 构建前端 H5"
 cd "$FE"
 [ -d node_modules ] || npm install
