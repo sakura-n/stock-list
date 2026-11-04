@@ -3,6 +3,7 @@ package com.example.stocklist.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -24,21 +25,30 @@ public class BrowserLauncher {
     @Value("${server.port:8090}")
     private int serverPort;
 
+    /** 实际绑定端口（打包版用 server.port=0 随机端口时，以此为准） */
+    private volatile int actualPort = -1;
+
+    @EventListener(WebServerInitializedEvent.class)
+    public void onWebServerInitialized(WebServerInitializedEvent event) {
+        this.actualPort = event.getWebServer().getPort();
+    }
+
     @EventListener(ApplicationReadyEvent.class)
     public void openHomePage() {
         if (!openBrowser) {
             return;
         }
+        int port = actualPort > 0 ? actualPort : serverPort;
         if (java.awt.GraphicsEnvironment.isHeadless() || !Desktop.isDesktopSupported()) {
-            log.warn("当前环境无桌面支持，请手动用浏览器访问 http://localhost:{}", serverPort);
+            log.warn("当前环境无桌面支持，请手动用浏览器访问 http://localhost:{}", port);
             return;
         }
         Desktop desktop = Desktop.getDesktop();
         if (!desktop.isSupported(Desktop.Action.BROWSE)) {
-            log.warn("当前系统浏览器不支持自动打开，请访问 http://localhost:{}", serverPort);
+            log.warn("当前系统浏览器不支持自动打开，请访问 http://localhost:{}", port);
             return;
         }
-        String url = "http://localhost:" + serverPort;
+        String url = "http://localhost:" + port;
         try {
             desktop.browse(URI.create(url));
             log.info("已自动打开浏览器: {}", url);

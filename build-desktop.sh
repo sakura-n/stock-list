@@ -60,6 +60,7 @@ JPKG="${JAVA_HOME:+$JAVA_HOME/bin/}jpackage"
   --main-jar "$JAR_NAME" \
   --dest "$BE/dist-desktop" \
   --java-options "-Dapp.open-browser=true" \
+  --java-options "-Dserver.port=0" \
   --add-modules ALL-MODULE-PATH
 
 echo "==> 5/5 完成"

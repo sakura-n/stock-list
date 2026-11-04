@@ -53,6 +53,7 @@ $JPKG = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME "bin\jpackage.exe" } else
   --main-jar $JAR_NAME `
   --dest $DESK `
   --java-options "-Dapp.open-browser=true" `
+  --java-options "-Dserver.port=0" `
   --add-modules ALL-MODULE-PATH
 if ($LASTEXITCODE -ne 0) { throw "jpackage 失败" }
 
